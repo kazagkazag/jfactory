@@ -1,11 +1,14 @@
 #!/bin/bash
 trap "exit 1" ERR
 
+VERSION="$1"
+
 # go to the script directory
 cd "$( dirname "${BASH_SOURCE[0]}" )"
 
 cp ../../batchuser-gerrit-plugin/target/batchuser-gerrit-plugin-1.0.0-SNAPSHOT.jar docker/batchuser.jar
 
+rm -rf docker/initial_repositories
 cp -r initial_repositories docker/
 cd docker/initial_repositories
 for project in */; do
@@ -39,7 +42,7 @@ for project in */; do
 done
 cd ../..
 
-docker build -t jfactory/gerrit:2.0 --build-arg=http_proxy --build-arg=https_proxy --build-arg=no_proxy  docker/
+docker build -t jfactory/gerrit:$VERSION --build-arg=http_proxy --build-arg=https_proxy --build-arg=no_proxy  docker/
 
 rm docker/batchuser.jar
 rm -rf docker/initial_repositories

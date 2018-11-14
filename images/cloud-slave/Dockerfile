@@ -1,34 +1,40 @@
-FROM jfactory/common-slave:2.0
+FROM jfactory/common-slave:latest
 MAINTAINER Sławek Piotrowski <sentinel@atteo.com>
 
 # versions
-ENV TERRAFORM_VERSION=0.9.8 \
+# Latest stable: curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt
+ENV TERRAFORM_VERSION=0.11.7 \
     TERRAFORM_HOME=/usr/share/terraform \
-    DOCKER_COMPOSE_VERSION=1.14.0
+    DOCKER_COMPOSE_VERSION=1.22.0 \
+	KUBERNETES_VERSION=v1.11.1
 
 USER root
 
-# azure, aws and docker
+# azure, aws, google cloud and docker
 RUN \
+	apt-get update && \
+	apt-get install -y gnupg2 apt-transport-https ca-certificates software-properties-common xmlstarlet python3-yaml && \
     echo "===> add azure repo" && \
-    echo "deb [arch=amd64] https://packages.microsoft.com/repos/azure-cli/ wheezy main" | tee /etc/apt/sources.list.d/azure-cli.list && \
-    apt-key adv --keyserver packages.microsoft.com --recv-keys 417A0893 && \
-    \
-    \
-    echo "===> add docker repo" && \
-    echo "deb https://apt.dockerproject.org/repo debian-jessie main" > /etc/apt/sources.list.d/docker.list && \
-	curl -L https://apt.dockerproject.org/gpg | apt-key add - && \
-    \
-    apt-get update && \
+    echo "deb [arch=amd64] https://packages.microsoft.com/repos/azure-cli/ stretch main" | tee /etc/apt/sources.list.d/azure-cli.list && \
+	curl -L https://packages.microsoft.com/keys/microsoft.asc | apt-key add - && \
+	curl -fsSL https://download.docker.com/linux/debian/gpg | apt-key add - && \
+	add-apt-repository \
+	   "deb [arch=amd64] https://download.docker.com/linux/debian \
+	      $(lsb_release -cs) \
+		  stable" \
+    && \
+	echo "deb http://packages.cloud.google.com/apt cloud-sdk-$(lsb_release -c -s) main" | tee -a /etc/apt/sources.list.d/google-cloud-sdk.list && \
+	curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add - && \
+    apt-get -y update && \
     \
     \
     echo "===> install cloud tools" && \
-    apt-get install -y unzip docker-engine azure-cli awscli jq gettext-base && \
+    apt-get install -y unzip docker-ce azure-cli awscli jq gettext-base netcat-openbsd google-cloud-sdk postgresql-client-9.6 && \
     usermod -aG docker jenkins && \
     \
     \
     echo "===> clean" && \
-    apt-get clean  && \
+    apt-get -y clean  && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 # terraform
@@ -43,6 +49,6 @@ RUN curl -L https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE
 	chmod +x /usr/local/bin/docker-compose
 
 # Kubernetes
-RUN curl -L https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl -o /usr/local/bin/kubectl && \
+RUN curl -L https://storage.googleapis.com/kubernetes-release/release/${KUBERNETES_VERSION}/bin/linux/amd64/kubectl -o /usr/local/bin/kubectl && \
     chmod +x /usr/local/bin/kubectl
 

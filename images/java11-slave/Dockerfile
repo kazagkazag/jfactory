@@ -1,11 +1,30 @@
-FROM jfactory/common-slave:latest
+# common-slave but with java9
+FROM adoptopenjdk/openjdk11:x86_64-ubuntu-jdk-11.28
 MAINTAINER Sławek Piotrowski <sentinel@atteo.com>
+
+ENV HOME /home/jenkins
+ENV LANG en_US.UTF-8
+ENV _JAVA_OPTIONS -Dfile.encoding=UTF-8
+
+RUN useradd -c "Jenkins user" -d $HOME -m jenkins
+
+WORKDIR /home/jenkins
+
+COPY ssh_config .ssh/config
+RUN chown jenkins.jenkins .ssh/config
+
+USER jenkins
+
 
 # versions
 ENV MAVEN_VERSION 3.5.4
 ENV MAVEN_HOME /usr/share/maven
 
 USER root
+
+RUN apt-get update && apt-get -y install \
+	git \
+	&& rm -rf /var/lib/apt/lists/*
 
 # Maven
 RUN mkdir -p $MAVEN_HOME \
